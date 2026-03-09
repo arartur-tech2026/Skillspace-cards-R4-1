@@ -43,6 +43,7 @@
       background-color: var(--bg-color);
       overscroll-behavior: none;
       -webkit-text-size-adjust: 100%;
+      font-family: system-ui, -apple-system, sans-serif;
     }
 
     @supports (-webkit-touch-callout: none) {
@@ -71,7 +72,6 @@
     .app-container {
       background: linear-gradient(135deg, var(--bg-color) 0%, var(--card-front-bg) 100%);
       color: var(--text-main);
-      font-family: system-ui, -apple-system, sans-serif;
       transition: background 0.3s ease, color 0.3s ease;
       display: flex;
       flex-direction: column;
@@ -90,7 +90,7 @@
       align-items: center;
       justify-content: center;
       z-index: 9999;
-      gap: 3rem;
+      gap: 1.5rem;
       transition: opacity 0.4s ease, visibility 0.4s ease;
     }
     [data-theme="dark"] .start-screen-overlay {
@@ -103,7 +103,7 @@
     }
     
     .start-title {
-      font-size: 2rem;
+      font-size: 1.25rem;
       font-weight: 800;
       color: #1e293b;
       text-align: center;
@@ -112,16 +112,17 @@
     }
     @media (min-width: 768px) {
       .start-title { font-size: 3rem; }
+      .start-screen-overlay { gap: 3rem; }
     }
     [data-theme="dark"] .start-title {
       color: #f8fafc;
     }
 
     .btn-start {
-      font-size: 1.75rem;
+      font-size: 1rem;
       font-weight: 800;
-      padding: 1.5rem 4rem;
-      border-radius: 1.5rem;
+      padding: 0.8rem 2.5rem;
+      border-radius: 1rem;
       background: var(--accent);
       color: #ffffff;
       border: none;
@@ -132,6 +133,13 @@
       letter-spacing: 0.1em;
       animation: pulse-start 2s infinite;
       -webkit-tap-highlight-color: transparent;
+    }
+    @media (min-width: 768px) {
+      .btn-start {
+        font-size: 1.75rem;
+        padding: 1.5rem 4rem;
+        border-radius: 1.5rem;
+      }
     }
     .btn-start:hover {
       transform: scale(1.05) translateY(-5px);
@@ -325,6 +333,7 @@
       .card-face { padding: 4rem 1.5rem; }
     }
 
+    /* Безопасное центрирование текста */
     .card-face::before {
       content: "";
       margin-top: auto;
@@ -382,6 +391,7 @@
       animation: pulse 2s infinite;
     }
 
+    /* Подсказки при свайпе (Tinder-like) */
     .swipe-badge {
       position: absolute;
       top: 2rem;
@@ -619,7 +629,7 @@
       { id: '7', topic: 'Тема 1. ПОЛИТИКА И ВЛАСТЬ', question: 'Назовите типы легитимности по Максу Веберу.', answer: 'К ним относятся: традиционный, харизматический и рационально-легальный типы.' },
       { id: '8', topic: 'Тема 1. ПОЛИТИКА И ВЛАСТЬ', question: 'В чем суть харизматического типа легитимности?', answer: 'Власть опирается на исключительные личные качества лидера и слепую веру в него масс.' },
       { id: '9', topic: 'Тема 1. ПОЛИТИКА И ВЛАСТЬ', question: 'Каковы основные функции политической власти?', answer: 'К ним относятся: управленческая, интегрирующая, контролирующая и мобилизационная.' },
-      { id: '10', topic: 'Тема 1. ПОЛИТИКА И ВЛАСТЬ', question: 'Что такое государственной власть?', answer: 'Это вид политической власти, где субъектом выступает государство в лице своих органов и должностных лиц.' },
+      { id: '10', topic: 'Тема 1. ПОЛИТИКА И ВЛАСТЬ', question: 'Что такое государственная власть?', answer: 'Это вид политической власти, где субъектом выступает государство в лице своих органов и должностных лиц.' },
       { id: '11', topic: 'Тема 2. ГОСУДАРСТВО: ПРИЗНАКИ И ФУНКЦИИ', question: 'Что такое государство?', answer: 'Политико-территориальная суверенная организация публичной власти, обладающая аппаратом управления и принуждения.' },
       { id: '12', topic: 'Тема 2. ГОСУДАРСТВО: ПРИЗНАКИ И ФУНКЦИИ', question: 'Назовите главные признаки государства.', answer: 'К ним относятся: территория, публичная власть, суверенитет, налоги и правотворчество.' },
       { id: '13', topic: 'Тема 2. ГОСУДАРСТВО: ПРИЗНАКИ И ФУНКЦИИ', question: 'Что такое государственный суверенитет?', answer: 'Это независимость государства во внешней политике и верховенство его власти внутри страны.' },
@@ -723,7 +733,6 @@
       btnTheme: document.getElementById('btn-theme'),
       btnFullscreen: document.getElementById('btn-fullscreen'),
       fullscreenIconUse: document.getElementById('fullscreen-icon-use'),
-      fileStatusText: document.getElementById('file-status-text'),
       emptyState: document.getElementById('empty-state'),
       mainContent: document.getElementById('main-content'),
       btnNext: document.getElementById('btn-next'),
@@ -780,41 +789,67 @@
       if (els.startScreen.classList.contains('hidden') === false) return;
       
       requestAnimationFrame(() => {
+        const currentCard = getFilteredCards()[currentIndex];
+        if (!currentCard) return;
+
         const frontFace = document.querySelector('.card-front');
         const backFace = document.querySelector('.card-back');
+        if (!frontFace || !backFace) return;
 
-        const fitText = (container, textElement) => {
+        let measurer = document.getElementById('text-measurer');
+        if (!measurer) {
+          measurer = document.createElement('div');
+          measurer.id = 'text-measurer';
+          measurer.style.position = 'absolute';
+          measurer.style.visibility = 'hidden';
+          measurer.style.pointerEvents = 'none';
+          measurer.style.left = '-9999px';
+          measurer.style.top = '-9999px';
+          measurer.style.wordWrap = 'break-word';
+          measurer.style.overflowWrap = 'break-word';
+          measurer.style.textAlign = 'center';
+          measurer.style.lineHeight = '1.5';
+          measurer.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+          measurer.style.margin = '0';
+          document.body.appendChild(measurer);
+        }
+
+        const fitText = (container, textElement, text, isBack) => {
           if (!container || !textElement || container.clientHeight === 0) return;
-          
-          // Временно отключаем 3D-переворот, чтобы получить 100% точные цифры от браузера
-          const oldTransform = container.style.transform;
-          const oldTransition = container.style.transition;
-          
-          container.style.transition = 'none';
-          container.style.transform = 'none';
-          
-          // Базовый размер
+
+          const style = window.getComputedStyle(container);
+          const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+          const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+
+          measurer.style.width = (container.clientWidth - paddingX) + 'px';
+          measurer.style.fontWeight = isBack ? '500' : '600';
+          measurer.textContent = text;
+
+          let maxAllowedHeight = container.clientHeight - paddingY - 10; 
+
+          if (isBack && els.cardTopicHint.style.display !== 'none') {
+            const hintStyle = window.getComputedStyle(els.cardTopicHint);
+            const hintHeight = els.cardTopicHint.offsetHeight + parseFloat(hintStyle.marginTop) + parseFloat(hintStyle.marginBottom);
+            maxAllowedHeight -= hintHeight;
+          }
+
           let fontSize = window.innerWidth >= 768 ? 24 : 18.4;
-          textElement.style.fontSize = fontSize + 'px';
-          
+          measurer.style.fontSize = fontSize + 'px';
+
           const minFontSize = 12; 
           let safety = 50; 
           
-          // Измеряем физическое переполнение контейнера с учетом всех паддингов и подсказок.
-          // Если контент не влезает (scrollHeight > clientHeight) - сжимаем шрифт.
-          while (container.scrollHeight > container.clientHeight + 2 && fontSize > minFontSize && safety > 0) {
+          while (measurer.scrollHeight > maxAllowedHeight && fontSize > minFontSize && safety > 0) {
             fontSize -= 0.5;
-            textElement.style.fontSize = fontSize + 'px';
+            measurer.style.fontSize = fontSize + 'px';
             safety--;
           }
 
-          // Возвращаем исходное состояние карточки (с переворотом и анимациями)
-          container.style.transform = oldTransform;
-          container.style.transition = oldTransition;
+          textElement.style.fontSize = fontSize + 'px';
         };
 
-        fitText(frontFace, els.cardQuestion);
-        fitText(backFace, els.cardAnswer);
+        fitText(frontFace, els.cardQuestion, currentCard.question, false);
+        fitText(backFace, els.cardAnswer, currentCard.answer, true);
       });
     }
 
@@ -849,6 +884,7 @@
         els.cardAnswer.textContent = currentCard.answer;
         els.statusText.textContent = `Карточка ${currentIndex + 1} из ${filtered.length}`;
 
+        // Логика лаконичной подсказки
         if (currentCard.topic) {
           const match = currentCard.topic.match(/^(Тема\s*\d+\.?)/i);
           const shortTopic = match ? match[1] : currentCard.topic;
